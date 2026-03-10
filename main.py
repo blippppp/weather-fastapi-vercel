@@ -97,10 +97,12 @@ async def root():
                 
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
-                        document.getElementById('lat').value = position.coords.latitude.toFixed(4);
-                        document.getElementById('lon').value = position.coords.longitude.toFixed(4);
+                        const lat = position.coords.latitude.toFixed(4);
+                        const lon = position.coords.longitude.toFixed(4);
+                        document.getElementById('lat').value = lat;
+                        document.getElementById('lon').value = lon;
                         locationName = 'Your Location';
-                        locationTimezone = '';
+                        locationTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
                         getWeather();
                     },
                     (error) => {
