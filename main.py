@@ -378,9 +378,42 @@ async def search_city(q: str):
 @app.get("/reverse")
 async def reverse_geocode(lat: float, lon: float):
     async with httpx.AsyncClient() as client:
+        # Try Open-Meteo reverse first
         url = f"https://geocoding-api.open-meteo.com/v1/reverse?latitude={lat}&longitude={lon}&format=json"
         resp = await client.get(url)
-        return resp.json()
+        try:
+            data = resp.json()
+        except Exception:
+            data = None
+
+        # If Open-Meteo didn't find a place, fall back to Nominatim (OpenStreetMap)
+        if not data or data.get("error") or not data.get("name"):
+            nom_url = f"https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat={lat}&lon={lon}"
+            # Nominatim requires a User-Agent
+            resp2 = await client.get(
+                nom_url,
+                headers={
+                    "User-Agent": "weather-fastapi-vercel/1.0 (+https://github.com/blippppp)"
+                },
+            )
+            try:
+                d2 = resp2.json()
+            except Exception:
+                d2 = None
+
+            if d2:
+                name = d2.get("name") or d2.get("display_name")
+                country = d2.get("address", {}).get("country")
+                return {
+                    "name": name,
+                    "country": country,
+                    "latitude": lat,
+                    "longitude": lon,
+                    "source": "nominatim",
+                }
+
+        # Otherwise return Open-Meteo response (may include timezone)
+        return data
 
 
 @app.get("/favicon.ico")
