@@ -52,8 +52,8 @@ async def root():
     <head>
         <title>Weather App</title>
         <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌤️</text></svg>">
-        <!-- Leaflet CSS -->
-        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-sA+e2H5u2rFfKxk3jGk2b2b6Yb1gY4k3p2R6i6bM6mM=" crossorigin=""/>
+        <!-- Leaflet CSS (no integrity to avoid blocking in some browsers) -->
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
         <style>
             body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
             input { padding: 10px; font-size: 16px; }
@@ -71,8 +71,8 @@ async def root():
             #map { height: 320px; margin-top: 12px; display: none; border-radius: 8px; }
             .map-toggle { margin-top: 10px; }
         </style>
-        <!-- Leaflet JS -->
-        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-o9N1j7rVvKJb8v1rH2V3g9XfQw8y2h3k6d6x4n3y3RM=" crossorigin=""></script>
+        <!-- Leaflet JS (no integrity to avoid blocking in some browsers) -->
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     </head>
     <body>
         <h1>Weather App</h1>
