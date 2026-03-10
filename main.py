@@ -147,12 +147,14 @@ async def root():
                     const code = data.current.weather_code;
                     const desc = data.current.weather_description || 'Unknown';
                     const c = data.current;
-                    const localTime = c.time ? c.time.replace('T', ' ').slice(0, 16) : '';
+                    const tz = locationTimezone || data.timezone || '';
+                    const weatherTime = c.time ? c.time.replace('T', ' ').slice(0, 16) : '';
                     
                     div.innerHTML = `
                         <div class="weather-card">
                             <h2>${locationName || 'Weather'}</h2>
-                            ${localTime ? '<p style="color:#666;">🕐 ' + localTime + '</p>' : ''}
+                            ${tz ? '<p style="color:#666;" id="currentTime"></p>' : ''}
+                            ${weatherTime ? '<p style="color:#999;font-size:12px;">Weather updated: ' + weatherTime + '</p>' : ''}
                             <div class="temp">${c.temperature_2m}°C</div>
                             <div class="condition">${desc}</div>
                             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:15px;text-align:left;">
@@ -165,9 +167,36 @@ async def root():
                             </div>
                         </div>
                     `;
+                    
+                    if (tz) {
+                        updateClock(tz);
+                    }
                 } catch (e) {
                     div.innerHTML = 'Error fetching weather';
                 }
+            }
+            
+            let clockInterval;
+            function updateClock(timezone) {
+                if (clockInterval) clearInterval(clockInterval);
+                const timeEl = document.getElementById('currentTime');
+                if (!timeEl) return;
+                
+                function tick() {
+                    const now = new Date();
+                    const fmt = new Intl.DateTimeFormat('en-US', {
+                        timeZone: timezone,
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        weekday: 'short',
+                        day: 'numeric',
+                        month: 'short'
+                    });
+                    timeEl.innerHTML = '🕐 ' + fmt.format(now);
+                }
+                tick();
+                clockInterval = setInterval(tick, 1000);
             }
         </script>
     </body>
