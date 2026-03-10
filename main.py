@@ -145,6 +145,14 @@ async def root():
                             </div>`;
                         });
                         div.innerHTML = html;
+                        // center map on first result if map initialized
+                        const first = data.results[0];
+                        if (window._map && first) {
+                            const latlng = [first.latitude, first.longitude];
+                            _map.setView(latlng, 10);
+                            if (_marker) _marker.setLatLng(latlng);
+                            else _marker = L.marker(latlng).addTo(_map);
+                        }
                     } else {
                         div.innerHTML = 'City not found';
                     }
@@ -176,7 +184,23 @@ async def root():
                     const lon = e.latlng.lng.toFixed(4);
                     document.getElementById('lat').value = lat;
                     document.getElementById('lon').value = lon;
-                    locationName = `Map: ${lat}, ${lon}`;
+                    // reverse geocode to get place name and timezone
+                    fetch(`/reverse?lat=${lat}&lon=${lon}`)
+                        .then(r => r.json())
+                        .then(info => {
+                            if (info && info.name) {
+                                locationName = info.name + (info.country ? (', ' + info.country) : '');
+                                if (info.timezone) locationTimezone = info.timezone;
+                                document.getElementById('results').innerHTML = `Selected: ${locationName}`;
+                            } else {
+                                locationName = `Map: ${lat}, ${lon}`;
+                                document.getElementById('results').innerHTML = `Selected: ${locationName}`;
+                            }
+                        })
+                        .catch(()=>{
+                            locationName = `Map: ${lat}, ${lon}`;
+                            document.getElementById('results').innerHTML = `Selected: ${locationName}`;
+                        });
                     if (_marker) _marker.setLatLng(e.latlng);
                     else _marker = L.marker(e.latlng).addTo(_map);
                     getWeather();
@@ -301,6 +325,14 @@ async def get_weather(lat: float, lon: float, timezone: str = ""):
 async def search_city(q: str):
     async with httpx.AsyncClient() as client:
         url = f"https://geocoding-api.open-meteo.com/v1/search?name={q}&count=5&language=en&format=json"
+        resp = await client.get(url)
+        return resp.json()
+
+
+@app.get("/reverse")
+async def reverse_geocode(lat: float, lon: float):
+    async with httpx.AsyncClient() as client:
+        url = f"https://geocoding-api.open-meteo.com/v1/reverse?latitude={lat}&longitude={lon}&format=json"
         resp = await client.get(url)
         return resp.json()
 
