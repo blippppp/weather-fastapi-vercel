@@ -68,13 +68,13 @@ async def root():
     <body>
         <h1>Weather App</h1>
         <div style="margin-bottom: 20px;">
-            <input type="text" id="city" class="city-input" placeholder="City name">
+            <input type="text" id="city" class="city-input" placeholder="City name" onkeydown="if(event.key==='Enter')searchCity()">
             <button onclick="searchCity()">Search</button>
         </div>
         <div id="results"></div>
         <div style="margin-top: 20px;">
-            <input type="text" id="lat" class="coord-input" placeholder="Latitude">
-            <input type="text" id="lon" class="coord-input" placeholder="Longitude">
+            <input type="text" id="lat" class="coord-input" placeholder="Latitude" onkeydown="if(event.key==='Enter')getWeather()">
+            <input type="text" id="lon" class="coord-input" placeholder="Longitude" onkeydown="if(event.key==='Enter')getWeather()">
             <button onclick="getWeather()">Get Weather</button>
         </div>
         <div id="weather"></div>
