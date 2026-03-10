@@ -52,6 +52,8 @@ async def root():
     <head>
         <title>Weather App</title>
         <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌤️</text></svg>">
+        <!-- Leaflet CSS -->
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-sA+e2H5u2rFfKxk3jGk2b2b6Yb1gY4k3p2R6i6bM6mM=" crossorigin=""/>
         <style>
             body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
             input { padding: 10px; font-size: 16px; }
@@ -65,7 +67,12 @@ async def root():
             .weather-card { text-align: center; }
             .temp { font-size: 48px; font-weight: bold; }
             .condition { font-size: 24px; margin: 10px 0; }
+            /* map styles */
+            #map { height: 320px; margin-top: 12px; display: none; border-radius: 8px; }
+            .map-toggle { margin-top: 10px; }
         </style>
+        <!-- Leaflet JS -->
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-o9N1j7rVvKJb8v1rH2V3g9XfQw8y2h3k6d6x4n3y3RM=" crossorigin=""></script>
     </head>
     <body>
         <h1>Weather App</h1>
@@ -81,7 +88,9 @@ async def root():
             <input type="text" id="lat" class="coord-input" placeholder="Latitude" onkeydown="if(event.key==='Enter')getWeather()">
             <input type="text" id="lon" class="coord-input" placeholder="Longitude" onkeydown="if(event.key==='Enter')getWeather()">
             <button onclick="getWeather()">Get Weather</button>
+            <button class="map-toggle" onclick="toggleMap()">🗺️ Toggle Map</button>
         </div>
+        <div id="map"></div>
         <div id="weather"></div>
         
         <script>
@@ -142,6 +151,36 @@ async def root():
                 } catch (e) {
                     div.innerHTML = 'Error searching city';
                 }
+            }
+
+            function toggleMap() {
+                const mapEl = document.getElementById('map');
+                if (mapEl.style.display === 'block') {
+                    mapEl.style.display = 'none';
+                } else {
+                    mapEl.style.display = 'block';
+                    if (!window._leafletInit) initMap();
+                }
+            }
+
+            let _map, _marker;
+            function initMap() {
+                window._leafletInit = true;
+                _map = L.map('map').setView([20,0], 2);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                }).addTo(_map);
+
+                _map.on('click', function(e) {
+                    const lat = e.latlng.lat.toFixed(4);
+                    const lon = e.latlng.lng.toFixed(4);
+                    document.getElementById('lat').value = lat;
+                    document.getElementById('lon').value = lon;
+                    locationName = `Map: ${lat}, ${lon}`;
+                    if (_marker) _marker.setLatLng(e.latlng);
+                    else _marker = L.marker(e.latlng).addTo(_map);
+                    getWeather();
+                });
             }
             
             let locationName = '';
