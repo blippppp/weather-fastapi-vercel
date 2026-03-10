@@ -264,8 +264,24 @@ async def root():
                 try {
                     const tzParam = locationTimezone ? `&timezone=${encodeURIComponent(locationTimezone)}` : '';
                     const res = await fetch(`/weather?lat=${lat}&lon=${lon}${tzParam}`);
-                    const data = await res.json();
-                    
+                    if (!res.ok) {
+                        const txt = await res.text();
+                        console.error('Weather fetch failed', res.status, txt);
+                        div.innerHTML = `Error fetching weather: ${res.status} ${txt}`;
+                        return;
+                    }
+                    let data;
+                    try { data = await res.json(); } catch (jsonErr) {
+                        const txt = await res.text().catch(()=>'<no body>');
+                        console.error('Invalid JSON from /weather', jsonErr, txt);
+                        div.innerHTML = 'Error: invalid response from server';
+                        return;
+                    }
+                    if (!data || !data.current) {
+                        console.error('Unexpected weather payload', data);
+                        div.innerHTML = 'Error: no weather data returned';
+                        return;
+                    }
                     const code = data.current.weather_code;
                     const desc = data.current.weather_description || 'Unknown';
                     const c = data.current;
@@ -306,7 +322,8 @@ async def root():
                         updateClock(tz);
                     }
                 } catch (e) {
-                    div.innerHTML = 'Error fetching weather';
+                    console.error('getWeather error', e);
+                    div.innerHTML = 'Error fetching weather: ' + (e && e.message ? e.message : e);
                 }
             }
             
