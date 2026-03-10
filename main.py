@@ -228,3 +228,8 @@ async def search_city(q: str):
 @app.get("/favicon.ico")
 async def favicon():
     return ""
+
+
+@app.get("/favicon.png")
+async def favicon_png():
+    return ""
