@@ -144,11 +144,12 @@ async def root():
                     const code = data.current.weather_code;
                     const desc = data.current.weather_description || 'Unknown';
                     const c = data.current;
+                    const tz = data.timezone || '';
                     
                     div.innerHTML = `
                         <div class="weather-card">
                             <h2>${locationName || 'Weather'}</h2>
-                            <p style="color:#666;">🕐 ${data.timezone}</p>
+                            ${tz ? '<p style=\"color:#666;\">🕐 ' + tz + '</p>' : ''}
                             <div class="temp">${c.temperature_2m}°C</div>
                             <div class="condition">${desc}</div>
                             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:15px;text-align:left;">
