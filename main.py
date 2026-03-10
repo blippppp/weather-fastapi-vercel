@@ -100,7 +100,7 @@ async def root():
                         let html = '<p>Select a city:</p>';
                         data.results.forEach((r, i) => {
                             const details = `${r.latitude.toFixed(2)}, ${r.longitude.toFixed(2)} • ${r.admin1 || ''} • Pop: ${r.population ? r.population.toLocaleString() : 'N/A'}`;
-                            html += `<div class="city-result" onclick="selectCity(${r.latitude}, ${r.longitude}, '${r.name}, ${r.country}')">
+                            html += `<div class="city-result" onclick="selectCity(${r.latitude}, ${r.longitude}, '${r.name}, ${r.country}', '${r.timezone}')">
                                 <strong>${r.name}, ${r.country}</strong><br>
                                 <small>${details}</small>
                             </div>`;
@@ -115,9 +115,11 @@ async def root():
             }
             
             let locationName = '';
+            let locationTimezone = '';
             
-            function selectCity(lat, lon, name) {
+            function selectCity(lat, lon, name, tz) {
                 locationName = name;
+                locationTimezone = tz;
                 document.getElementById('lat').value = lat;
                 document.getElementById('lon').value = lon;
                 document.getElementById('results').innerHTML = `Selected: ${name}`;
@@ -138,7 +140,8 @@ async def root():
                 div.style.display = 'block';
                 
                 try {
-                    const res = await fetch(`/weather?lat=${lat}&lon=${lon}`);
+                    const tzParam = locationTimezone ? `&timezone=${encodeURIComponent(locationTimezone)}` : '';
+                    const res = await fetch(`/weather?lat=${lat}&lon=${lon}${tzParam}`);
                     const data = await res.json();
                     
                     const code = data.current.weather_code;
@@ -173,9 +176,10 @@ async def root():
 
 
 @app.get("/weather")
-async def get_weather(lat: float, lon: float):
+async def get_weather(lat: float, lon: float, timezone: str = ""):
     async with httpx.AsyncClient() as client:
-        url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,pressure_msl,cloud_cover"
+        tz_param = f"&timezone={timezone}" if timezone else ""
+        url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,pressure_msl,cloud_cover{tz_param}"
         resp = await client.get(url)
         data = resp.json()
         code = data.get("current", {}).get("weather_code", 0)
