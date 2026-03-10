@@ -51,6 +51,7 @@ async def root():
     <html>
     <head>
         <title>Weather App</title>
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌤️</text></svg>">
         <style>
             body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
             input { padding: 10px; font-size: 16px; }
@@ -222,3 +223,8 @@ async def search_city(q: str):
         url = f"https://geocoding-api.open-meteo.com/v1/search?name={q}&count=5&language=en&format=json"
         resp = await client.get(url)
         return resp.json()
+
+
+@app.get("/favicon.ico")
+async def favicon():
+    return ""
