@@ -165,10 +165,39 @@ async def root():
                 const mapEl = document.getElementById('map');
                 if (mapEl.style.display === 'block') {
                     mapEl.style.display = 'none';
-                } else {
-                    mapEl.style.display = 'block';
-                    if (!window._leafletInit) initMap();
+                    return;
                 }
+                mapEl.style.display = 'block';
+                // Ensure Leaflet is loaded; if not, load it dynamically
+                function loadScript(url) {
+                    return new Promise((resolve, reject) => {
+                        const s = document.createElement('script');
+                        s.src = url;
+                        s.onload = resolve;
+                        s.onerror = reject;
+                        document.head.appendChild(s);
+                    });
+                }
+
+                function loadCSS(url) {
+                    return new Promise((resolve) => {
+                        const l = document.createElement('link');
+                        l.rel = 'stylesheet';
+                        l.href = url;
+                        l.onload = resolve;
+                        document.head.appendChild(l);
+                    });
+                }
+
+                (async function ensureLeaflet() {
+                    if (typeof L === 'undefined') {
+                        await loadCSS('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
+                        await loadScript('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js');
+                    }
+                    if (!window._leafletInit) initMap();
+                    // Leaflet needs a size recalculation when container becomes visible
+                    setTimeout(()=>{ try{ _map.invalidateSize(); } catch(e){} }, 200);
+                })();
             }
 
             let _map, _marker;
