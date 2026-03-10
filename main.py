@@ -69,6 +69,9 @@ async def root():
     </head>
     <body>
         <h1>Weather App</h1>
+        <div style="margin-bottom: 10px;">
+            <button onclick="getCurrentLocation()" style="background:#4CAF50;color:white;">📍 Use My Location</button>
+        </div>
         <div style="margin-bottom: 20px;">
             <input type="text" id="city" class="city-input" placeholder="City name" onkeydown="if(event.key==='Enter')searchCity()">
             <button onclick="searchCity()">Search</button>
@@ -82,6 +85,30 @@ async def root():
         <div id="weather"></div>
         
         <script>
+            function getCurrentLocation() {
+                const div = document.getElementById('weather');
+                if (!navigator.geolocation) {
+                    div.innerHTML = 'Geolocation not supported';
+                    div.style.display = 'block';
+                    return;
+                }
+                div.innerHTML = 'Getting location...';
+                div.style.display = 'block';
+                
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        document.getElementById('lat').value = position.coords.latitude.toFixed(4);
+                        document.getElementById('lon').value = position.coords.longitude.toFixed(4);
+                        locationName = 'Your Location';
+                        locationTimezone = '';
+                        getWeather();
+                    },
+                    (error) => {
+                        div.innerHTML = 'Error: ' + error.message;
+                    }
+                );
+            }
+            
             async function searchCity() {
                 const city = document.getElementById('city').value;
                 const div = document.getElementById('results');
@@ -151,6 +178,17 @@ async def root():
                     const tz = locationTimezone || data.timezone || '';
                     const weatherTime = c.time ? c.time.replace('T', ' ').slice(0, 16) : '';
                     
+                    let sunData = '';
+                    if (data.daily && data.daily.sunrise && data.daily.sunrise[0]) {
+                        const sunrise = data.daily.sunrise[0].split('T')[1];
+                        const sunset = data.daily.sunset[0].split('T')[1];
+                        sunData = `
+                            <div style="margin-top:15px;padding:10px;background:#fff3cd;border-radius:6px;">
+                                🌅 Sunrise: ${sunrise} | 🌇 Sunset: ${sunset}
+                            </div>
+                        `;
+                    }
+                    
                     div.innerHTML = `
                         <div class="weather-card">
                             <h2>${locationName || 'Weather'}</h2>
@@ -158,6 +196,7 @@ async def root():
                             ${weatherTime ? '<p style="color:#999;font-size:12px;">Weather updated: ' + weatherTime + '</p>' : ''}
                             <div class="temp">${c.temperature_2m}°C</div>
                             <div class="condition">${desc}</div>
+                            ${sunData}
                             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:15px;text-align:left;">
                                 <div>🌡️ Feels like: ${c.apparent_temperature}°C</div>
                                 <div>💧 Humidity: ${c.relative_humidity_2m}%</div>
@@ -209,7 +248,7 @@ async def root():
 async def get_weather(lat: float, lon: float, timezone: str = ""):
     async with httpx.AsyncClient() as client:
         tz_param = f"&timezone={timezone}" if timezone else ""
-        url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,pressure_msl,cloud_cover{tz_param}"
+        url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,pressure_msl,cloud_cover&daily=sunrise,sunset{tz_param}"
         resp = await client.get(url)
         data = resp.json()
         code = data.get("current", {}).get("weather_code", 0)
