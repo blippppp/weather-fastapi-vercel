@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 import httpx
+import base64
 
 app = FastAPI()
 
@@ -52,8 +53,7 @@ async def root():
     <head>
         <title>Weather App</title>
         <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌤️</text></svg>">
-        <!-- Leaflet CSS (no integrity to avoid blocking in some browsers) -->
-        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+        
         <style>
             body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
             input { padding: 10px; font-size: 16px; }
@@ -67,12 +67,9 @@ async def root():
             .weather-card { text-align: center; }
             .temp { font-size: 48px; font-weight: bold; }
             .condition { font-size: 24px; margin: 10px 0; }
-            /* map styles */
-            #map { height: 320px; margin-top: 12px; display: none; border-radius: 8px; }
-            .map-toggle { margin-top: 10px; }
+            
         </style>
-        <!-- Leaflet JS (no integrity to avoid blocking in some browsers) -->
-        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        
     </head>
     <body>
         <h1>Weather App</h1>
@@ -88,9 +85,7 @@ async def root():
             <input type="text" id="lat" class="coord-input" placeholder="Latitude" onkeydown="if(event.key==='Enter')getWeather()">
             <input type="text" id="lon" class="coord-input" placeholder="Longitude" onkeydown="if(event.key==='Enter')getWeather()">
             <button onclick="getWeather()">Get Weather</button>
-            <button class="map-toggle" onclick="toggleMap()">🗺️ Toggle Map</button>
         </div>
-        <div id="map"></div>
         <div id="weather"></div>
         
         <script>
@@ -145,95 +140,12 @@ async def root():
                             </div>`;
                         });
                         div.innerHTML = html;
-                        // center map on first result if map initialized
-                        const first = data.results[0];
-                        if (window._map && first) {
-                            const latlng = [first.latitude, first.longitude];
-                            _map.setView(latlng, 10);
-                            if (_marker) _marker.setLatLng(latlng);
-                            else _marker = L.marker(latlng).addTo(_map);
-                        }
                     } else {
                         div.innerHTML = 'City not found';
                     }
                 } catch (e) {
                     div.innerHTML = 'Error searching city';
                 }
-            }
-
-            function toggleMap() {
-                const mapEl = document.getElementById('map');
-                if (mapEl.style.display === 'block') {
-                    mapEl.style.display = 'none';
-                    return;
-                }
-                mapEl.style.display = 'block';
-                // Ensure Leaflet is loaded; if not, load it dynamically
-                function loadScript(url) {
-                    return new Promise((resolve, reject) => {
-                        const s = document.createElement('script');
-                        s.src = url;
-                        s.onload = resolve;
-                        s.onerror = reject;
-                        document.head.appendChild(s);
-                    });
-                }
-
-                function loadCSS(url) {
-                    return new Promise((resolve) => {
-                        const l = document.createElement('link');
-                        l.rel = 'stylesheet';
-                        l.href = url;
-                        l.onload = resolve;
-                        document.head.appendChild(l);
-                    });
-                }
-
-                (async function ensureLeaflet() {
-                    if (typeof L === 'undefined') {
-                        await loadCSS('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
-                        await loadScript('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js');
-                    }
-                    if (!window._leafletInit) initMap();
-                    // Leaflet needs a size recalculation when container becomes visible
-                    setTimeout(()=>{ try{ _map.invalidateSize(); } catch(e){} }, 200);
-                })();
-            }
-
-            let _map, _marker;
-            function initMap() {
-                window._leafletInit = true;
-                _map = L.map('map').setView([20,0], 2);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19,
-                }).addTo(_map);
-
-                _map.on('click', function(e) {
-                    const lat = e.latlng.lat.toFixed(4);
-                    const lon = e.latlng.lng.toFixed(4);
-                    document.getElementById('lat').value = lat;
-                    document.getElementById('lon').value = lon;
-                    // reverse geocode to get place name and timezone
-                    fetch(`/reverse?lat=${lat}&lon=${lon}`)
-                        .then(r => r.json())
-                        .then(info => {
-                            if (info && info.name) {
-                                locationName = info.name + (info.country ? (', ' + info.country) : '');
-                                if (info.timezone) locationTimezone = info.timezone;
-                                document.getElementById('results').innerHTML = `Selected: ${locationName}`;
-                            } else {
-                                locationName = `Map: ${lat}, ${lon}`;
-                                document.getElementById('results').innerHTML = `Selected: ${locationName}`;
-                            }
-                        })
-                        .catch(()=>{
-                            locationName = `Map: ${lat}, ${lon}`;
-                            document.getElementById('results').innerHTML = `Selected: ${locationName}`;
-                        });
-                    if (_marker) _marker.setLatLng(e.latlng);
-                    else _marker = L.marker(e.latlng).addTo(_map);
-                    getWeather();
-                });
             }
             
             let locationName = '';
@@ -416,21 +328,25 @@ async def reverse_geocode(lat: float, lon: float):
         return data
 
 
+_FAV_PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII="
+
+
 @app.get("/favicon.ico")
 async def favicon():
-    return ""
+    data = base64.b64decode(_FAV_PNG)
+    return Response(content=data, media_type="image/x-icon")
 
 
 @app.get("/favicon.png")
 async def favicon_png():
-    return ""
+    data = base64.b64decode(_FAV_PNG)
+    return Response(content=data, media_type="image/png")
 
 
 @app.get("/apple-touch-icon.png")
 async def apple_icon():
-    return ""
+    data = base64.b64decode(_FAV_PNG)
+    return Response(content=data, media_type="image/png")
 
 
-@app.get("/favicon.png")
-async def favicon_png():
-    return ""
+# duplicate favicon route removed
