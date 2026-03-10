@@ -57,7 +57,8 @@ async def root():
             button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
             .city-input { width: 200px; }
             .coord-input { width: 120px; }
-            #weather { margin-top: 20px; padding: 20px; background: #f0f0f0; border-radius: 8px; }
+            #weather { margin-top: 20px; padding: 20px; background: #f0f0f0; border-radius: 8px; display: none; }
+            #results { margin-top: 10px; }
             .city-result { padding: 10px; margin: 5px 0; background: #e0e0e0; cursor: pointer; border-radius: 4px; }
             .city-result:hover { background: #d0d0d0; }
             .weather-card { text-align: center; }
@@ -98,7 +99,11 @@ async def root():
                     if (data.results && data.results.length > 0) {
                         let html = '<p>Select a city:</p>';
                         data.results.forEach((r, i) => {
-                            html += `<div class="city-result" onclick="selectCity(${r.latitude}, ${r.longitude}, '${r.name}, ${r.country}')">${r.name}, ${r.country}</div>`;
+                            const details = `${r.latitude.toFixed(2)}, ${r.longitude.toFixed(2)} • ${r.admin1 || ''} • Pop: ${r.population ? r.population.toLocaleString() : 'N/A'}`;
+                            html += `<div class="city-result" onclick="selectCity(${r.latitude}, ${r.longitude}, '${r.name}, ${r.country}')">
+                                <strong>${r.name}, ${r.country}</strong><br>
+                                <small>${details}</small>
+                            </div>`;
                         });
                         div.innerHTML = html;
                     } else {
@@ -109,7 +114,10 @@ async def root():
                 }
             }
             
+            let locationName = '';
+            
             function selectCity(lat, lon, name) {
+                locationName = name;
                 document.getElementById('lat').value = lat;
                 document.getElementById('lon').value = lon;
                 document.getElementById('results').innerHTML = `Selected: ${name}`;
@@ -127,6 +135,7 @@ async def root():
                 }
                 
                 div.innerHTML = 'Loading...';
+                div.style.display = 'block';
                 
                 try {
                     const res = await fetch(`/weather?lat=${lat}&lon=${lon}`);
@@ -134,12 +143,21 @@ async def root():
                     
                     const code = data.current.weather_code;
                     const desc = data.current.weather_description || 'Unknown';
+                    const c = data.current;
                     
                     div.innerHTML = `
                         <div class="weather-card">
-                            <div class="temp">${data.current.temperature_2m}°C</div>
+                            <h2>${locationName || 'Weather'}</h2>
+                            <div class="temp">${c.temperature_2m}°C</div>
                             <div class="condition">${desc}</div>
-                            <p>Wind: ${data.current.wind_speed_10m} km/h</p>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:15px;text-align:left;">
+                                <div>🌡️ Feels like: ${c.apparent_temperature}°C</div>
+                                <div>💧 Humidity: ${c.relative_humidity_2m}%</div>
+                                <div>🌬️ Wind: ${c.wind_speed_10m} km/h</div>
+                                <div>🧭 Wind dir: ${c.wind_direction_10m}°</div>
+                                <div>☁️ Cloud cover: ${c.cloud_cover}%</div>
+                                <div>📊 Pressure: ${c.pressure_msl} hPa</div>
+                            </div>
                         </div>
                     `;
                 } catch (e) {
@@ -155,7 +173,7 @@ async def root():
 @app.get("/weather")
 async def get_weather(lat: float, lon: float):
     async with httpx.AsyncClient() as client:
-        url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,weather_code,wind_speed_10m"
+        url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,pressure_msl,cloud_cover"
         resp = await client.get(url)
         data = resp.json()
         code = data.get("current", {}).get("weather_code", 0)
