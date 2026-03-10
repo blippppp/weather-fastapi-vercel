@@ -233,3 +233,13 @@ async def favicon():
 @app.get("/favicon.png")
 async def favicon_png():
     return ""
+
+
+@app.get("/apple-touch-icon.png")
+async def apple_icon():
+    return ""
+
+
+@app.get("/favicon.png")
+async def favicon_png():
+    return ""
