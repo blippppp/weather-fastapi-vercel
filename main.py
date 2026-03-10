@@ -148,6 +148,7 @@ async def root():
                     div.innerHTML = `
                         <div class="weather-card">
                             <h2>${locationName || 'Weather'}</h2>
+                            <p style="color:#666;">🕐 ${data.timezone}</p>
                             <div class="temp">${c.temperature_2m}°C</div>
                             <div class="condition">${desc}</div>
                             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:15px;text-align:left;">
